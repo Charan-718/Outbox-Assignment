@@ -49,7 +49,7 @@ let worker: any = null;
 async function bootstrap() {
   try {
     console.log('----------------------------------------------------');
-    console.log('🚀 Starting ReachInbox Production Email Scheduler...');
+    console.log('[Server] Starting ReachInbox Email Scheduler...');
     console.log('----------------------------------------------------');
 
     // 1. Connect to PostgreSQL
@@ -70,11 +70,11 @@ async function bootstrap() {
 
     // 6. Start HTTP Server
     const server = app.listen(config.port, () => {
-      console.log(`----------------------------------------------------`);
-      console.log(`✅ Server running on http://localhost:${config.port}`);
-      console.log(`📊 BullMQ Live Dashboard: http://localhost:${config.port}/admin/queues`);
-      console.log(`🔎 Elasticsearch search & indexing ready`);
-      console.log(`----------------------------------------------------`);
+      console.log('----------------------------------------------------');
+      console.log(`[Server] Running on http://localhost:${config.port}`);
+      console.log(`[BullMQ] Live Dashboard: http://localhost:${config.port}/admin/queues`);
+      console.log(`[Elasticsearch] Search & indexing ready`);
+      console.log('----------------------------------------------------');
     });
 
     // Graceful Shutdown
@@ -95,7 +95,7 @@ async function bootstrap() {
     process.on('SIGTERM', () => shutdown('SIGTERM'));
 
   } catch (error: any) {
-    console.error('❌ Failed to start server:', error);
+    console.error('[Server] Failed to start:', error);
     process.exit(1);
   }
 }

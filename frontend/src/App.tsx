@@ -9,7 +9,7 @@ import { ComposeModal } from './components/ComposeModal';
 import { SlackModal } from './components/SlackModal';
 import { SendersView } from './components/SendersView';
 import { LoginView } from './components/LoginView';
-import { Search, RefreshCw, Mail, CheckCircle2, SlidersHorizontal, Activity } from 'lucide-react';
+import { Search, RefreshCw, Mail, CheckCircle2, Sliders, Database } from 'lucide-react';
 
 export const App: React.FC = () => {
   // Authentication State
@@ -91,7 +91,6 @@ export const App: React.FC = () => {
         const res = await emailApi.search({ q: searchQuery.trim() });
         setSearchSource(res.source);
 
-        // Separate into scheduled vs sent
         const scheduled = res.emails.filter((e) => ['SCHEDULED', 'RATE_LIMITED', 'PROCESSING'].includes(e.status));
         const sent = res.emails.filter((e) => ['SENT', 'FAILED'].includes(e.status));
 
@@ -121,7 +120,7 @@ export const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#0B0D13] text-slate-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-canvas text-slate-100 flex flex-col font-sans">
       {/* Top Header */}
       <Header
         user={user}
@@ -132,30 +131,28 @@ export const App: React.FC = () => {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-8">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-6">
         {/* Metric Cards */}
         <StatsCards stats={stats} onRefresh={fetchData} />
 
         {/* Action & Filter Bar */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mb-6">
-          {/* Navigation Tabs */}
-          <div className="flex items-center space-x-1 rounded-xl bg-dark-850/80 p-1 border border-dark-700/80 shadow-md">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-5">
+          {/* Minimal Navigation Tabs */}
+          <div className="flex items-center space-x-1 rounded-lg bg-surface p-1 border border-surface-border">
             <button
               onClick={() => {
                 setActiveTab('scheduled');
                 setSearchQuery('');
               }}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+              className={`flex items-center space-x-2 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
                 activeTab === 'scheduled'
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-dark-800'
+                  ? 'bg-surface-elevated text-slate-100 border border-surface-border shadow-xs'
+                  : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              <Mail className="w-3.5 h-3.5" />
+              <Mail className="w-3.5 h-3.5 text-slate-400" />
               <span>Scheduled Emails</span>
-              <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
-                activeTab === 'scheduled' ? 'bg-blue-700 text-white' : 'bg-dark-750 text-slate-400'
-              }`}>
+              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-surface border border-surface-border text-slate-400">
                 {scheduledEmails.length}
               </span>
             </button>
@@ -165,17 +162,15 @@ export const App: React.FC = () => {
                 setActiveTab('sent');
                 setSearchQuery('');
               }}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+              className={`flex items-center space-x-2 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
                 activeTab === 'sent'
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-dark-800'
+                  ? 'bg-surface-elevated text-slate-100 border border-surface-border shadow-xs'
+                  : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              <CheckCircle2 className="w-3.5 h-3.5" />
+              <CheckCircle2 className="w-3.5 h-3.5 text-slate-400" />
               <span>Sent Emails</span>
-              <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
-                activeTab === 'sent' ? 'bg-blue-700 text-white' : 'bg-dark-750 text-slate-400'
-              }`}>
+              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-surface border border-surface-border text-slate-400">
                 {sentEmails.length}
               </span>
             </button>
@@ -185,33 +180,33 @@ export const App: React.FC = () => {
                 setActiveTab('senders');
                 setSearchQuery('');
               }}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+              className={`flex items-center space-x-2 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
                 activeTab === 'senders'
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-dark-800'
+                  ? 'bg-surface-elevated text-slate-100 border border-surface-border shadow-xs'
+                  : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              <SlidersHorizontal className="w-3.5 h-3.5" />
-              <span>Senders & Rate Limits</span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-dark-750 text-slate-400">
+              <Sliders className="w-3.5 h-3.5 text-slate-400" />
+              <span>Senders & Limits</span>
+              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-surface border border-surface-border text-slate-400">
                 {senders.length}
               </span>
             </button>
           </div>
 
           {/* Search Input with Elasticsearch indicator */}
-          <div className="flex items-center space-x-3">
-            <div className="relative w-full sm:w-80">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <div className="flex items-center space-x-2">
+            <div className="relative w-full sm:w-72">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search subject, body, or recipient..."
-                className="w-full pl-9 pr-24 py-2 rounded-xl bg-dark-850/80 border border-dark-700 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors shadow-inner"
+                placeholder="Search subject, body, recipient..."
+                className="w-full pl-8 pr-20 py-1.5 rounded-lg bg-surface border border-surface-border text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-slate-500 transition-colors"
               />
               <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                <span className="text-[9px] font-mono font-medium px-1.5 py-0.5 rounded bg-surface-elevated text-slate-400 border border-surface-border">
                   {searchSource ? (searchSource === 'elasticsearch' ? 'ES 8.x' : 'DB') : 'Elasticsearch'}
                 </span>
               </div>
@@ -219,10 +214,10 @@ export const App: React.FC = () => {
 
             <button
               onClick={fetchData}
-              className="p-2 rounded-xl bg-dark-850 border border-dark-700 text-slate-400 hover:text-white hover:border-slate-500 transition-colors"
-              title="Refresh queue status"
+              className="p-1.5 rounded-lg bg-surface border border-surface-border text-slate-400 hover:text-white hover:border-slate-600 transition-colors"
+              title="Refresh queue"
             >
-              <RefreshCw className="w-4 h-4" />
+              <RefreshCw className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>

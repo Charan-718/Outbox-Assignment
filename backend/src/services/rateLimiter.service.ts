@@ -69,7 +69,7 @@ export class RateLimiterService {
         }
 
         // Dispatch live Slack alert (OAuth or Webhook)
-        console.log(`[RateLimiter] 🚨 Sender ${senderEmail} reached limit of ${hourlyLimit}/hr. Triggering Slack notification!`);
+        console.log(`[RateLimiter] [Alert] Sender ${senderEmail} reached limit of ${hourlyLimit}/hr. Triggering Slack notification.`);
         slackService.notifyRateLimitHit({
           senderEmail,
           hourlyLimit,

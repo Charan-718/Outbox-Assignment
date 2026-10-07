@@ -1,8 +1,20 @@
 import React, { useState, useRef } from 'react';
 import { Sender } from '../types';
 import { emailApi } from '../services/api';
-import confetti from 'canvas-confetti';
-import { X, Upload, Users, Clock, Shield, Sparkles, AlertCircle, Check } from 'lucide-react';
+import {
+  X,
+  Upload,
+  Users,
+  Clock,
+  Shield,
+  Send,
+  AlertCircle,
+  Check,
+  FileText,
+  Sliders,
+  Mail,
+  Loader2,
+} from 'lucide-react';
 
 interface ComposeModalProps {
   isOpen: boolean;
@@ -28,8 +40,7 @@ export const ComposeModal: React.FC<ComposeModalProps> = ({
   const [body, setBody] = useState('');
   const [delaySeconds, setDelaySeconds] = useState(2);
   const [hourlyLimit, setHourlyLimit] = useState(50);
-  
-  // Start time: defaults to current local datetime + 10 seconds
+
   const getDefaultStartTime = () => {
     const d = new Date(Date.now() + 10000);
     d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
@@ -83,11 +94,11 @@ export const ComposeModal: React.FC<ComposeModalProps> = ({
     setError('');
 
     if (!subject.trim()) {
-      setError('Please provide an email subject');
+      setError('Subject is required');
       return;
     }
     if (!body.trim()) {
-      setError('Please provide an email body');
+      setError('Email body is required');
       return;
     }
 
@@ -113,7 +124,7 @@ export const ComposeModal: React.FC<ComposeModalProps> = ({
         });
       } else {
         if (parsedEmails.length === 0) {
-          setError('Please upload a CSV or text file containing at least one email address');
+          setError('Please upload a file containing at least one email address');
           setLoading(false);
           return;
         }
@@ -130,15 +141,6 @@ export const ComposeModal: React.FC<ComposeModalProps> = ({
         });
       }
 
-      // Celebrate with confetti
-      try {
-        confetti({
-          particleCount: 80,
-          spread: 60,
-          origin: { y: 0.6 },
-        });
-      } catch {}
-
       onSuccess();
       onClose();
     } catch (err: any) {
@@ -149,82 +151,82 @@ export const ComposeModal: React.FC<ComposeModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
-      <div className="relative w-full max-w-2xl max-h-[92vh] overflow-y-auto rounded-2xl bg-dark-850 border border-dark-700 shadow-2xl p-6 text-slate-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-100">
+      <div className="relative w-full max-w-xl max-h-[92vh] overflow-y-auto rounded-xl bg-surface-card border border-surface-border shadow-2xl p-6 text-slate-100">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-dark-700 pb-4 mb-5">
+        <div className="flex items-center justify-between border-b border-surface-border pb-3.5 mb-4">
           <div className="flex items-center space-x-2.5">
-            <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400">
-              <Sparkles className="w-5 h-5" />
+            <div className="w-8 h-8 rounded-lg bg-surface-elevated border border-surface-border flex items-center justify-center text-slate-300">
+              <Mail className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-slate-100">Compose & Schedule Campaign</h2>
-              <p className="text-xs text-slate-400">BullMQ persistent queue with rate limit throttling</p>
+              <h2 className="text-sm font-semibold text-slate-100">Schedule Outreach Campaign</h2>
+              <p className="text-[11px] text-slate-400">BullMQ persistent queue with rate limit throttling</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-dark-750 transition-colors"
+            className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-surface-elevated transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {error && (
-          <div className="mb-4 p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center space-x-2">
+          <div className="mb-4 p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center space-x-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+        <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
           {/* Target Mode Toggle */}
-          <div className="flex rounded-lg bg-dark-800 p-1 border border-dark-750">
+          <div className="flex rounded-lg bg-surface-elevated p-0.5 border border-surface-border">
             <button
               type="button"
               onClick={() => setMode('batch')}
-              className={`flex-1 py-1.5 px-3 rounded-md font-medium transition-all ${
+              className={`flex-1 py-1.5 px-3 rounded-md font-medium text-xs transition-colors ${
                 mode === 'batch'
-                  ? 'bg-blue-600 text-white shadow-sm'
+                  ? 'bg-surface border border-surface-border text-slate-100 shadow-sm'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              CSV / Lead List Upload (Bulk)
+              CSV / Lead Upload (Bulk)
             </button>
             <button
               type="button"
               onClick={() => setMode('single')}
-              className={`flex-1 py-1.5 px-3 rounded-md font-medium transition-all ${
+              className={`flex-1 py-1.5 px-3 rounded-md font-medium text-xs transition-colors ${
                 mode === 'single'
-                  ? 'bg-blue-600 text-white shadow-sm'
+                  ? 'bg-surface border border-surface-border text-slate-100 shadow-sm'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              Single Recipient Test
+              Single Recipient
             </button>
           </div>
 
           {/* Recipients Input */}
           {mode === 'single' ? (
             <div>
-              <label className="block font-medium text-slate-300 mb-1.5">Recipient Email *</label>
+              <label className="block font-medium text-slate-300 mb-1">Recipient Email</label>
               <input
                 type="email"
                 value={recipient}
                 onChange={(e) => setRecipient(e.target.value)}
-                placeholder="e.g. prospect@company.com"
-                className="w-full px-3.5 py-2.5 rounded-lg bg-dark-800 border border-dark-700 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+                placeholder="prospect@company.com"
+                className="w-full px-3 py-2 rounded-lg bg-surface border border-surface-border text-slate-100 placeholder-slate-500 focus:outline-none focus:border-slate-500 transition-colors"
                 required
               />
             </div>
           ) : (
             <div>
-              <label className="block font-medium text-slate-300 mb-1.5">Upload Leads (CSV / TXT) *</label>
+              <label className="block font-medium text-slate-300 mb-1">Leads Source (CSV / TXT)</label>
               <div
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
-                className="cursor-pointer border-2 border-dashed border-dark-700 hover:border-blue-500/50 rounded-xl p-5 text-center bg-dark-800/40 hover:bg-dark-800/70 transition-all"
+                className="cursor-pointer border border-dashed border-surface-border hover:border-slate-500 rounded-lg p-4 text-center bg-surface/50 hover:bg-surface transition-colors"
               >
                 <input
                   type="file"
@@ -233,23 +235,23 @@ export const ComposeModal: React.FC<ComposeModalProps> = ({
                   accept=".csv,.txt"
                   className="hidden"
                 />
-                <Upload className="w-6 h-6 text-blue-400 mx-auto mb-2" />
-                <p className="text-slate-200 font-medium">Click to upload or drag & drop</p>
-                <p className="text-[11px] text-slate-500 mt-0.5">Supports CSV, TSV, or plain text with emails</p>
+                <Upload className="w-5 h-5 text-slate-400 mx-auto mb-1.5" />
+                <p className="text-slate-300 font-medium text-xs">Upload CSV or drag & drop</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">Supports CSV, TSV, or plain text</p>
               </div>
 
               {parsedEmails.length > 0 && (
-                <div className="mt-2.5 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-between">
+                <div className="mt-2 p-2.5 rounded-lg bg-surface-elevated border border-surface-border flex items-center justify-between">
                   <div className="flex items-center space-x-2">
-                    <Users className="w-4 h-4 text-blue-400" />
-                    <span className="font-semibold text-blue-300">
-                      {parsedEmails.length} valid lead{parsedEmails.length === 1 ? '' : 's'} detected
+                    <FileText className="w-3.5 h-3.5 text-slate-400" />
+                    <span className="font-medium text-slate-200">
+                      {parsedEmails.length} lead{parsedEmails.length === 1 ? '' : 's'} detected
                     </span>
-                    <span className="text-slate-400 text-[11px]">({uploadedFileName})</span>
+                    <span className="text-slate-500 text-[11px] font-mono">({uploadedFileName})</span>
                   </div>
                   <span className="text-[11px] text-emerald-400 font-medium flex items-center space-x-1">
-                    <Check className="w-3.5 h-3.5" />
-                    <span>Ready</span>
+                    <Check className="w-3 h-3" />
+                    <span>Parsed</span>
                   </span>
                 </div>
               )}
@@ -258,11 +260,11 @@ export const ComposeModal: React.FC<ComposeModalProps> = ({
 
           {/* Sender Dropdown */}
           <div>
-            <label className="block font-medium text-slate-300 mb-1.5">Sending Account</label>
+            <label className="block font-medium text-slate-300 mb-1">Sender Mailbox</label>
             <select
               value={senderEmail}
               onChange={(e) => setSenderEmail(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-lg bg-dark-800 border border-dark-700 text-slate-100 focus:outline-none focus:border-blue-500 transition-colors"
+              className="w-full px-3 py-2 rounded-lg bg-surface border border-surface-border text-slate-100 focus:outline-none focus:border-slate-500 transition-colors"
             >
               {senders.map((s) => (
                 <option key={s.id} value={s.email}>
@@ -275,51 +277,51 @@ export const ComposeModal: React.FC<ComposeModalProps> = ({
 
           {/* Subject */}
           <div>
-            <label className="block font-medium text-slate-300 mb-1.5">Subject *</label>
+            <label className="block font-medium text-slate-300 mb-1">Subject</label>
             <input
               type="text"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
-              placeholder="e.g. Scaling cold outreach with AI workflows"
-              className="w-full px-3.5 py-2.5 rounded-lg bg-dark-800 border border-dark-700 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+              placeholder="e.g. Cold email sequence introduction"
+              className="w-full px-3 py-2 rounded-lg bg-surface border border-surface-border text-slate-100 placeholder-slate-500 focus:outline-none focus:border-slate-500 transition-colors"
               required
             />
           </div>
 
           {/* Email Body */}
           <div>
-            <label className="block font-medium text-slate-300 mb-1.5">Body (HTML or Text) *</label>
+            <label className="block font-medium text-slate-300 mb-1">Body (HTML or Plain Text)</label>
             <textarea
               rows={4}
               value={body}
               onChange={(e) => setBody(e.target.value)}
-              placeholder="Write your email copy or HTML template here..."
-              className="w-full px-3.5 py-2.5 rounded-lg bg-dark-800 border border-dark-700 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors font-mono text-[12px]"
+              placeholder="Write your email body or HTML markup here..."
+              className="w-full px-3 py-2 rounded-lg bg-surface border border-surface-border text-slate-100 placeholder-slate-500 focus:outline-none focus:border-slate-500 font-mono text-xs transition-colors"
               required
             />
           </div>
 
           {/* Rate Limiting & Scheduling Controls */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3.5 rounded-xl bg-dark-800/60 border border-dark-750">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 rounded-lg bg-surface-elevated/60 border border-surface-border">
             {/* Start Time */}
             <div>
-              <label className="block font-medium text-slate-300 mb-1 flex items-center space-x-1">
-                <Clock className="w-3.5 h-3.5 text-blue-400" />
+              <label className="block font-medium text-slate-400 mb-1 flex items-center space-x-1 text-[11px]">
+                <Clock className="w-3 h-3 text-slate-400" />
                 <span>Start Time</span>
               </label>
               <input
                 type="datetime-local"
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
-                className="w-full px-2.5 py-1.5 rounded-md bg-dark-850 border border-dark-700 text-slate-200 text-xs focus:outline-none focus:border-blue-500"
+                className="w-full px-2 py-1.5 rounded-md bg-surface border border-surface-border text-slate-200 text-xs focus:outline-none focus:border-slate-500 font-mono"
               />
             </div>
 
             {/* Delay between emails */}
             <div>
-              <label className="block font-medium text-slate-300 mb-1 flex items-center space-x-1">
-                <Shield className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Delay (seconds)</span>
+              <label className="block font-medium text-slate-400 mb-1 flex items-center space-x-1 text-[11px]">
+                <Sliders className="w-3 h-3 text-slate-400" />
+                <span>Delay (sec)</span>
               </label>
               <input
                 type="number"
@@ -327,15 +329,14 @@ export const ComposeModal: React.FC<ComposeModalProps> = ({
                 max={60}
                 value={delaySeconds}
                 onChange={(e) => setDelaySeconds(parseInt(e.target.value, 10) || 2)}
-                className="w-full px-2.5 py-1.5 rounded-md bg-dark-850 border border-dark-700 text-slate-200 text-xs focus:outline-none focus:border-blue-500"
+                className="w-full px-2 py-1.5 rounded-md bg-surface border border-surface-border text-slate-200 text-xs focus:outline-none focus:border-slate-500 font-mono"
               />
-              <span className="text-[10px] text-slate-500">Min throttling delay</span>
             </div>
 
             {/* Hourly Rate Limit */}
             <div>
-              <label className="block font-medium text-slate-300 mb-1 flex items-center space-x-1">
-                <Shield className="w-3.5 h-3.5 text-amber-400" />
+              <label className="block font-medium text-slate-400 mb-1 flex items-center space-x-1 text-[11px]">
+                <Shield className="w-3 h-3 text-slate-400" />
                 <span>Hourly Limit</span>
               </label>
               <input
@@ -344,35 +345,34 @@ export const ComposeModal: React.FC<ComposeModalProps> = ({
                 max={500}
                 value={hourlyLimit}
                 onChange={(e) => setHourlyLimit(parseInt(e.target.value, 10) || 50)}
-                className="w-full px-2.5 py-1.5 rounded-md bg-dark-850 border border-dark-700 text-slate-200 text-xs focus:outline-none focus:border-blue-500"
+                className="w-full px-2 py-1.5 rounded-md bg-surface border border-surface-border text-slate-200 text-xs focus:outline-none focus:border-slate-500 font-mono"
               />
-              <span className="text-[10px] text-slate-500">Max sends/hr/sender</span>
             </div>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center justify-end space-x-3 pt-3 border-t border-dark-700">
+          <div className="flex items-center justify-end space-x-2.5 pt-3 border-t border-surface-border">
             <button
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="px-4 py-2 rounded-lg text-slate-300 hover:bg-dark-750 transition-colors"
+              className="px-3.5 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-surface-elevated transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex items-center space-x-2 px-5 py-2.5 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold shadow-lg shadow-blue-600/25 disabled:opacity-50 transition-all active:scale-95"
+              className="inline-flex items-center space-x-1.5 px-4 py-1.5 rounded-lg bg-slate-100 hover:bg-white text-slate-900 font-medium disabled:opacity-50 transition-all active:scale-98"
             >
               {loading ? (
                 <>
-                  <span className="w-3.5 h-3.5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                  <span>Scheduling in BullMQ...</span>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Scheduling...</span>
                 </>
               ) : (
                 <>
-                  <Sparkles className="w-4 h-4" />
+                  <Send className="w-3.5 h-3.5" />
                   <span>
                     Schedule {mode === 'batch' && parsedEmails.length > 0 ? `${parsedEmails.length} Emails` : 'Email'}
                   </span>

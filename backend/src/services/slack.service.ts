@@ -75,8 +75,8 @@ export class SlackService {
             type: 'header',
             text: {
               type: 'plain_text',
-              text: '⚠️ Email Scheduler: Hourly Rate Limit Reached',
-              emoji: true,
+              text: '[Rate Limit Alert] Hourly Limit Reached',
+              emoji: false,
             },
           },
           {
@@ -104,7 +104,7 @@ export class SlackService {
             type: 'section',
             text: {
               type: 'mrkdwn',
-              text: '🛡️ *Automatic Throttling Active*: Excess jobs have been safely rescheduled into the next hour window preserving queue order. No emails were dropped.',
+              text: '*Automatic Throttling Active*: Excess jobs have been safely rescheduled into the next hour window preserving queue order. Zero emails dropped.',
             },
           },
           {
@@ -112,7 +112,7 @@ export class SlackService {
             elements: [
               {
                 type: 'mrkdwn',
-                text: `⚡ ReachInbox Production Scheduler | Triggered at ${new Date().toISOString()}`,
+                text: `ReachInbox Scheduler | Triggered at ${new Date().toISOString()}`,
               },
             ],
           },

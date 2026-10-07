@@ -1,6 +1,17 @@
 import React, { useState } from 'react';
 import { User, SlackStatus } from '../types';
-import { Activity, ExternalLink, LogOut, MessageSquare, ChevronDown, CheckCircle2, AlertCircle } from 'lucide-react';
+import {
+  Layers,
+  Activity,
+  ExternalLink,
+  LogOut,
+  MessageSquare,
+  ChevronDown,
+  Plus,
+  CheckCircle2,
+  CircleDot,
+  Radio,
+} from 'lucide-react';
 
 interface HeaderProps {
   user: User;
@@ -20,131 +31,124 @@ export const Header: React.FC<HeaderProps> = ({
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-30 border-b border-dark-700 bg-dark-900/90 backdrop-blur-md px-6 py-3.5 transition-all">
+    <header className="sticky top-0 z-30 border-b border-surface-border bg-canvas/95 backdrop-blur-md px-6 py-3 transition-colors">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         {/* Brand & Product */}
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-emerald-400 p-[1px] shadow-lg shadow-blue-500/10">
-              <div className="w-full h-full bg-dark-850 rounded-[11px] flex items-center justify-center">
-                <span className="text-lg font-bold bg-gradient-to-r from-blue-400 to-emerald-300 bg-clip-text text-transparent">
-                  ⚡
-                </span>
-              </div>
-            </div>
-            <div>
-              <div className="flex items-center space-x-2">
-                <span className="font-bold text-slate-100 tracking-tight text-lg">ReachInbox</span>
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                  Scheduler Engine
-                </span>
-              </div>
-              <p className="text-xs text-slate-400">Outbox Labs Architecture</p>
-            </div>
+        <div className="flex items-center space-x-3.5">
+          <div className="w-8 h-8 rounded-lg bg-surface-elevated border border-surface-border flex items-center justify-center text-slate-200">
+            <Layers className="w-4 h-4 text-slate-300" />
+          </div>
+          <div className="flex items-center space-x-2.5">
+            <span className="font-semibold text-slate-100 tracking-tight text-sm">
+              ReachInbox
+            </span>
+            <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-surface-elevated text-slate-400 border border-surface-border">
+              Scheduler
+            </span>
           </div>
         </div>
 
         {/* Right Controls */}
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-2.5">
           {/* BullMQ Live Dashboard */}
           <a
             href="http://localhost:5001/admin/queues"
             target="_blank"
             rel="noreferrer"
-            className="hidden sm:flex items-center space-x-2 px-3 py-1.5 text-xs font-medium rounded-lg bg-dark-800 text-slate-300 border border-dark-700 hover:border-slate-500 hover:text-white transition-colors"
+            className="hidden sm:inline-flex items-center space-x-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-surface border border-surface-border text-slate-300 hover:bg-surface-elevated hover:text-slate-100 transition-colors"
             title="Open Live BullMQ Queue Monitor"
           >
-            <Activity className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
-            <span>BullMQ Dashboard</span>
-            <ExternalLink className="w-3 h-3 text-slate-400" />
+            <Activity className="w-3.5 h-3.5 text-slate-400" />
+            <span>BullMQ Queues</span>
+            <ExternalLink className="w-3 h-3 text-slate-500" />
           </a>
 
           {/* Slack Connection Button */}
           <button
             onClick={onOpenSlackModal}
-            className={`flex items-center space-x-2 px-3 py-1.5 text-xs font-medium rounded-lg border transition-all ${
+            className={`inline-flex items-center space-x-2 px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
               slackStatus.isConnected
-                ? 'bg-emerald-950/40 text-emerald-300 border-emerald-800/60 hover:bg-emerald-900/40'
-                : 'bg-dark-800 text-slate-300 border-dark-700 hover:border-slate-500 hover:text-white'
+                ? 'bg-surface border-surface-border text-slate-200 hover:bg-surface-elevated'
+                : 'bg-surface border-surface-border text-slate-400 hover:text-slate-200 hover:bg-surface-elevated'
             }`}
           >
-            <MessageSquare className="w-3.5 h-3.5 text-[#E01E5A]" />
+            <MessageSquare className="w-3.5 h-3.5 text-slate-400" />
             <span>{slackStatus.isConnected ? 'Slack Connected' : 'Connect Slack'}</span>
-            {slackStatus.isConnected ? (
-              <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-            ) : (
-              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-            )}
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${
+                slackStatus.isConnected ? 'bg-emerald-400' : 'bg-slate-500'
+              }`}
+            />
           </button>
 
           {/* Primary Action Button */}
           <button
             onClick={onOpenCompose}
-            className="flex items-center space-x-2 px-4 py-2 text-xs font-semibold rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-600/20 active:scale-[0.98] transition-all"
+            className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 text-xs font-medium rounded-lg bg-slate-100 hover:bg-white text-slate-900 shadow-sm active:scale-[0.98] transition-all"
           >
-            <span>+ Compose New Email</span>
+            <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+            <span>Compose Email</span>
           </button>
 
           {/* User Profile */}
-          <div className="relative">
+          <div className="relative ml-1">
             <button
               onClick={() => setMenuOpen(!menuOpen)}
-              className="flex items-center space-x-2.5 p-1 rounded-lg hover:bg-dark-800 transition-colors border border-transparent hover:border-dark-700"
+              className="flex items-center space-x-2 p-1 rounded-lg hover:bg-surface-elevated transition-colors border border-transparent hover:border-surface-border"
             >
               {user.avatarUrl ? (
                 <img
                   src={user.avatarUrl}
                   alt={user.name || user.email}
-                  className="w-8 h-8 rounded-full object-cover ring-2 ring-blue-500/20"
+                  className="w-7 h-7 rounded-md object-cover border border-surface-border"
                 />
               ) : (
-                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-xs font-bold text-white">
+                <div className="w-7 h-7 rounded-md bg-surface-elevated border border-surface-border flex items-center justify-center text-xs font-medium text-slate-300">
                   {(user.name || user.email).charAt(0).toUpperCase()}
                 </div>
               )}
               <div className="hidden md:block text-left text-xs">
-                <p className="font-medium text-slate-200 leading-tight">{user.name || 'User'}</p>
-                <p className="text-[11px] text-slate-400 truncate max-w-[120px]">{user.email}</p>
+                <p className="font-medium text-slate-200 leading-tight">{user.name || 'Account'}</p>
               </div>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+              <ChevronDown className="w-3 h-3 text-slate-500" />
             </button>
 
             {menuOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
-                <div className="absolute right-0 mt-2 w-56 rounded-xl bg-dark-850 border border-dark-700 shadow-2xl py-2 z-50 text-xs">
-                  <div className="px-4 py-2 border-b border-dark-700">
-                    <p className="font-semibold text-slate-100">{user.name || 'ReachInbox Account'}</p>
-                    <p className="text-slate-400 text-[11px] truncate">{user.email}</p>
+                <div className="absolute right-0 mt-2 w-52 rounded-xl bg-surface-card border border-surface-border shadow-xl py-1.5 z-50 text-xs">
+                  <div className="px-3.5 py-2 border-b border-surface-border">
+                    <p className="font-medium text-slate-200 truncate">{user.name || 'User'}</p>
+                    <p className="text-slate-400 text-[11px] font-mono truncate">{user.email}</p>
                   </div>
                   <div className="py-1">
                     <a
                       href="http://localhost:5001/admin/queues"
                       target="_blank"
                       rel="noreferrer"
-                      className="flex items-center space-x-2 px-4 py-2 text-slate-300 hover:bg-dark-700 hover:text-white transition-colors"
+                      className="flex items-center space-x-2 px-3.5 py-1.5 text-slate-300 hover:bg-surface-elevated hover:text-white transition-colors"
                     >
-                      <Activity className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>BullMQ Queue UI</span>
+                      <Activity className="w-3.5 h-3.5 text-slate-400" />
+                      <span>BullMQ Dashboard</span>
                     </a>
                     <button
                       onClick={() => {
                         setMenuOpen(false);
                         onOpenSlackModal();
                       }}
-                      className="w-full flex items-center space-x-2 px-4 py-2 text-slate-300 hover:bg-dark-700 hover:text-white text-left transition-colors"
+                      className="w-full flex items-center space-x-2 px-3.5 py-1.5 text-slate-300 hover:bg-surface-elevated hover:text-white text-left transition-colors"
                     >
-                      <MessageSquare className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Slack Notification Settings</span>
+                      <MessageSquare className="w-3.5 h-3.5 text-slate-400" />
+                      <span>Slack Notifications</span>
                     </button>
                   </div>
-                  <div className="border-t border-dark-700 pt-1">
+                  <div className="border-t border-surface-border pt-1">
                     <button
                       onClick={onLogout}
-                      className="w-full flex items-center space-x-2 px-4 py-2 text-rose-400 hover:bg-rose-500/10 transition-colors text-left"
+                      className="w-full flex items-center space-x-2 px-3.5 py-1.5 text-rose-400 hover:bg-rose-500/10 transition-colors text-left"
                     >
                       <LogOut className="w-3.5 h-3.5" />
-                      <span>Logout</span>
+                      <span>Log out</span>
                     </button>
                   </div>
                 </div>
