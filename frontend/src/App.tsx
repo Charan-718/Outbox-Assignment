@@ -1,15 +1,22 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { User, EmailJob, Sender, SystemStats, SlackStatus } from './types';
 import { emailApi, senderApi, slackApi } from './services/api';
-import { Header } from './components/Header';
-import { StatsCards } from './components/StatsCards';
-import { ScheduledTable } from './components/ScheduledTable';
-import { SentTable } from './components/SentTable';
-import { ComposeModal } from './components/ComposeModal';
+import { MailSidebar } from './components/MailSidebar';
+import { EmailListPane } from './components/EmailListPane';
+import { EmailDetailPane } from './components/EmailDetailPane';
+import { MailComposer } from './components/MailComposer';
 import { SlackModal } from './components/SlackModal';
 import { SendersView } from './components/SendersView';
 import { LoginView } from './components/LoginView';
-import { Search, RefreshCw, Mail, CheckCircle2, Sliders, Database } from 'lucide-react';
+import {
+  Search,
+  RefreshCw,
+  Clock,
+  Send,
+  AlertTriangle,
+  Sliders,
+  Filter,
+} from 'lucide-react';
 
 export const App: React.FC = () => {
   // Authentication State
@@ -18,8 +25,11 @@ export const App: React.FC = () => {
     return cached ? JSON.parse(cached) : null;
   });
 
-  // Active Tab
-  const [activeTab, setActiveTab] = useState<'scheduled' | 'sent' | 'senders'>('scheduled');
+  // Current Mailbox Folder
+  const [currentFolder, setCurrentFolder] = useState<'scheduled' | 'sent' | 'throttled' | 'senders'>('scheduled');
+
+  // Selected Email for Reading Pane
+  const [selectedEmail, setSelectedEmail] = useState<EmailJob | null>(null);
 
   // Data States
   const [scheduledEmails, setScheduledEmails] = useState<EmailJob[]>([]);
@@ -58,15 +68,30 @@ export const App: React.FC = () => {
         slackApi.getStatus(user.id),
       ]);
 
-      setScheduledEmails(scheduledRes.emails || []);
-      setSentEmails(sentRes.emails || []);
+      const sched = scheduledRes.emails || [];
+      const sent = sentRes.emails || [];
+      setScheduledEmails(sched);
+      setSentEmails(sent);
       setSenders(sendersRes || []);
       setStats(statsRes);
       setSlackStatus(slackRes);
+
+      // Auto-select first email if none selected
+      setSelectedEmail((prev) => {
+        if (prev) {
+          // Keep updated state of current selection
+          const all = [...sched, ...sent];
+          const found = all.find((e) => e.id === prev.id);
+          return found || prev;
+        }
+        if (currentFolder === 'scheduled' && sched.length > 0) return sched[0];
+        if (currentFolder === 'sent' && sent.length > 0) return sent[0];
+        return null;
+      });
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
     }
-  }, [user]);
+  }, [user, currentFolder]);
 
   // Initial load and periodic refresh
   useEffect(() => {
@@ -76,6 +101,21 @@ export const App: React.FC = () => {
       return () => clearInterval(interval);
     }
   }, [user, fetchData]);
+
+  // Update selected email when folder changes
+  const handleSelectFolder = (folder: 'scheduled' | 'sent' | 'throttled' | 'senders') => {
+    setCurrentFolder(folder);
+    if (folder === 'scheduled' && scheduledEmails.length > 0) {
+      setSelectedEmail(scheduledEmails[0]);
+    } else if (folder === 'sent' && sentEmails.length > 0) {
+      setSelectedEmail(sentEmails[0]);
+    } else if (folder === 'throttled') {
+      const throttled = scheduledEmails.filter((e) => e.status === 'RATE_LIMITED');
+      setSelectedEmail(throttled[0] || null);
+    } else {
+      setSelectedEmail(null);
+    }
+  };
 
   // Elasticsearch Search with debounce
   useEffect(() => {
@@ -96,6 +136,10 @@ export const App: React.FC = () => {
 
         setScheduledEmails(scheduled);
         setSentEmails(sent);
+
+        if (res.emails.length > 0) {
+          setSelectedEmail(res.emails[0]);
+        }
       } catch (err) {
         console.error('Search error:', err);
       } finally {
@@ -119,137 +163,154 @@ export const App: React.FC = () => {
     return <LoginView onLoginSuccess={handleLoginSuccess} />;
   }
 
+  // Filter emails based on folder
+  const currentList =
+    currentFolder === 'scheduled'
+      ? scheduledEmails.filter((e) => e.status !== 'RATE_LIMITED')
+      : currentFolder === 'throttled'
+      ? scheduledEmails.filter((e) => e.status === 'RATE_LIMITED')
+      : currentFolder === 'sent'
+      ? sentEmails
+      : [];
+
+  const getFolderMeta = () => {
+    switch (currentFolder) {
+      case 'scheduled':
+        return {
+          title: 'Scheduled Queue',
+          count: currentList.length,
+          emptyTitle: 'No scheduled emails',
+          emptyDesc: 'Outreach campaigns waiting in BullMQ delayed queue will appear here.',
+        };
+      case 'sent':
+        return {
+          title: 'Delivered Outbox',
+          count: currentList.length,
+          emptyTitle: 'No sent emails yet',
+          emptyDesc: 'Emails sent via Ethereal fake SMTP will appear here with preview links.',
+        };
+      case 'throttled':
+        return {
+          title: 'Throttled & Rescheduled',
+          count: currentList.length,
+          emptyTitle: 'No throttled emails',
+          emptyDesc: 'Jobs that hit hourly limits are automatically held and queued for the next window.',
+        };
+      case 'senders':
+        return {
+          title: 'Mailboxes & Rate Limits',
+          count: senders.length,
+          emptyTitle: '',
+          emptyDesc: '',
+        };
+    }
+  };
+
+  const folderMeta = getFolderMeta();
+
   return (
-    <div className="min-h-screen bg-canvas text-slate-100 flex flex-col font-sans">
-      {/* Top Header */}
-      <Header
+    <div className="h-screen w-screen overflow-hidden bg-canvas text-slate-100 flex font-sans">
+      {/* 1. Left Email Client Sidebar */}
+      <MailSidebar
+        currentFolder={currentFolder}
+        onSelectFolder={handleSelectFolder}
+        onOpenCompose={() => setIsComposeOpen(true)}
+        onOpenSlackModal={() => setIsSlackModalOpen(true)}
         user={user}
         onLogout={handleLogout}
+        stats={stats}
         slackStatus={slackStatus}
-        onOpenSlackModal={() => setIsSlackModalOpen(true)}
-        onOpenCompose={() => setIsComposeOpen(true)}
+        sendersCount={senders.length}
       />
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-6">
-        {/* Metric Cards */}
-        <StatsCards stats={stats} onRefresh={fetchData} />
-
-        {/* Action & Filter Bar */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-5">
-          {/* Minimal Navigation Tabs */}
-          <div className="flex items-center space-x-1 rounded-lg bg-surface p-1 border border-surface-border">
-            <button
-              onClick={() => {
-                setActiveTab('scheduled');
-                setSearchQuery('');
-              }}
-              className={`flex items-center space-x-2 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                activeTab === 'scheduled'
-                  ? 'bg-surface-elevated text-slate-100 border border-surface-border shadow-xs'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <Mail className="w-3.5 h-3.5 text-slate-400" />
-              <span>Scheduled Emails</span>
-              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-surface border border-surface-border text-slate-400">
-                {scheduledEmails.length}
+      {/* 2. Main Email Workspace */}
+      <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-canvas">
+        {/* Top Search & Action Bar */}
+        <header className="h-14 px-6 border-b border-surface-border bg-surface flex items-center justify-between shrink-0">
+          {/* Email Search with Elasticsearch Badge */}
+          <div className="relative w-full max-w-lg">
+            <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search recipient, subject, or message body..."
+              className="w-full pl-8 pr-28 py-1.5 rounded-lg bg-surface-elevated border border-surface-border text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-slate-500 transition-colors font-sans"
+            />
+            <div className="absolute right-2 top-1/2 -translate-y-1/2">
+              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-surface text-slate-400 border border-surface-border">
+                {searchSource ? (searchSource === 'elasticsearch' ? 'ES 8.x' : 'DB') : 'Elasticsearch'}
               </span>
-            </button>
-
-            <button
-              onClick={() => {
-                setActiveTab('sent');
-                setSearchQuery('');
-              }}
-              className={`flex items-center space-x-2 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                activeTab === 'sent'
-                  ? 'bg-surface-elevated text-slate-100 border border-surface-border shadow-xs'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <CheckCircle2 className="w-3.5 h-3.5 text-slate-400" />
-              <span>Sent Emails</span>
-              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-surface border border-surface-border text-slate-400">
-                {sentEmails.length}
-              </span>
-            </button>
-
-            <button
-              onClick={() => {
-                setActiveTab('senders');
-                setSearchQuery('');
-              }}
-              className={`flex items-center space-x-2 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                activeTab === 'senders'
-                  ? 'bg-surface-elevated text-slate-100 border border-surface-border shadow-xs'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <Sliders className="w-3.5 h-3.5 text-slate-400" />
-              <span>Senders & Limits</span>
-              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-surface border border-surface-border text-slate-400">
-                {senders.length}
-              </span>
-            </button>
+            </div>
           </div>
 
-          {/* Search Input with Elasticsearch indicator */}
-          <div className="flex items-center space-x-2">
-            <div className="relative w-full sm:w-72">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search subject, body, recipient..."
-                className="w-full pl-8 pr-20 py-1.5 rounded-lg bg-surface border border-surface-border text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-slate-500 transition-colors"
-              />
-              <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                <span className="text-[9px] font-mono font-medium px-1.5 py-0.5 rounded bg-surface-elevated text-slate-400 border border-surface-border">
-                  {searchSource ? (searchSource === 'elasticsearch' ? 'ES 8.x' : 'DB') : 'Elasticsearch'}
-                </span>
-              </div>
-            </div>
-
+          {/* Quick Header Right Tools */}
+          <div className="flex items-center space-x-2 text-xs text-slate-400 font-mono">
+            <span className="hidden sm:inline-block text-[11px] text-slate-500">
+              Worker Concurrency: 5
+            </span>
             <button
               onClick={fetchData}
-              className="p-1.5 rounded-lg bg-surface border border-surface-border text-slate-400 hover:text-white hover:border-slate-600 transition-colors"
+              className="p-1.5 rounded-lg border border-surface-border bg-surface-elevated hover:bg-surface-hover text-slate-400 hover:text-white transition-colors"
               title="Refresh queue"
             >
               <RefreshCw className="w-3.5 h-3.5" />
             </button>
           </div>
-        </div>
+        </header>
 
-        {/* Tab Content Display */}
-        {activeTab === 'scheduled' && (
-          <ScheduledTable
-            emails={scheduledEmails}
-            loading={loading}
-            onCancel={handleCancelEmail}
-            onOpenCompose={() => setIsComposeOpen(true)}
-          />
-        )}
+        {/* Workspace Body */}
+        {currentFolder === 'senders' ? (
+          <div className="flex-1 overflow-y-auto p-8 max-w-5xl">
+            <div className="mb-6">
+              <h2 className="text-base font-semibold text-slate-100">Sending Mailboxes & Hourly Limits</h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Manage per-sender limits, track real-time Redis hourly counters, and trigger manual resets.
+              </p>
+            </div>
+            <SendersView senders={senders} onRefresh={fetchData} />
+          </div>
+        ) : (
+          /* Split Dual-Pane Email View (Superhuman / Apple Mail Style) */
+          <div className="flex-1 flex min-h-0 overflow-hidden divide-x divide-surface-border">
+            {/* Left Sub-Pane: Email Thread List */}
+            <div className="w-[380px] lg:w-[420px] flex flex-col bg-surface shrink-0 h-full overflow-hidden">
+              {/* Folder Sub-Header */}
+              <div className="h-10 px-4 border-b border-surface-border flex items-center justify-between shrink-0 bg-surface">
+                <span className="text-xs font-semibold text-slate-200">
+                  {folderMeta.title}
+                </span>
+                <span className="text-[10px] font-mono text-slate-400">
+                  {folderMeta.count} {folderMeta.count === 1 ? 'item' : 'items'}
+                </span>
+              </div>
 
-        {activeTab === 'sent' && (
-          <SentTable
-            emails={sentEmails}
-            loading={loading}
-            onOpenCompose={() => setIsComposeOpen(true)}
-          />
-        )}
+              {/* Thread List */}
+              <EmailListPane
+                emails={currentList}
+                selectedEmailId={selectedEmail?.id || null}
+                onSelectEmail={setSelectedEmail}
+                onCancelEmail={handleCancelEmail}
+                loading={loading}
+                emptyTitle={folderMeta.emptyTitle}
+                emptyDescription={folderMeta.emptyDesc}
+                folderType={currentFolder}
+              />
+            </div>
 
-        {activeTab === 'senders' && (
-          <SendersView
-            senders={senders}
-            onRefresh={fetchData}
-          />
+            {/* Right Sub-Pane: Full Email Reading / Inspection View */}
+            <div className="flex-1 flex flex-col h-full overflow-hidden bg-canvas">
+              <EmailDetailPane
+                email={selectedEmail}
+                onCancelEmail={handleCancelEmail}
+              />
+            </div>
+          </div>
         )}
       </main>
 
-      {/* Modals */}
-      <ComposeModal
+      {/* 3. Docked Floating Email Composer (Superhuman / Gmail Style) */}
+      <MailComposer
         isOpen={isComposeOpen}
         onClose={() => setIsComposeOpen(false)}
         onSuccess={fetchData}
@@ -257,6 +318,7 @@ export const App: React.FC = () => {
         userId={user.id}
       />
 
+      {/* 4. Slack Connection & Live Alert Modal */}
       <SlackModal
         isOpen={isSlackModalOpen}
         onClose={() => setIsSlackModalOpen(false)}
