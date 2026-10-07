@@ -4,48 +4,32 @@ Production-grade email scheduler service and interactive dashboard built for hig
 
 ---
 
-## 🎯 Architecture & System Design Overview
+## 🎯 Architecture & Mail Client Environment Overview
+
+The dashboard is built as an interactive, dual-pane **mail client environment** (inspired by Superhuman, Linear, and ReachInbox Onebox) featuring a dedicated navigation sidebar, a responsive email thread list, a live email reading & inspection pane, and a docked floating outreach composer.
 
 ```
-                                      +------------------------------------+
-                                      |          Vite + React UI           |
-                                      | (Dark Modern UI, Google/Demo Auth) |
-                                      +-----------------+------------------+
-                                                        |
-                                                 REST / Reverse Proxy
-                                                        |
-                                                        v
-+---------------------------------------------------------------------------------------------------+
-|                                  Express.js TypeScript Backend                                    |
-|                                                                                                   |
-|  +--------------------+    +--------------------+    +--------------------+    +----------------+ |
-|  |   Auth Service     |    | Scheduler Service  |    | Rate Limit Engine  |    | Search Service | |
-|  | (Google / Session) |    |  (BullMQ Delayed)  |    |  (Redis Counters)  |    |(Elasticsearch) | |
-|  +--------------------+    +---------+----------+    +---------+----------+    +-------+--------+ |
-|                                      |                         |                       |          |
-|                                      | Enqueue Delayed         | Throttled Window      | Sync     |
-|                                      v                         v                       v          |
-|                            +-------------------+     +-------------------+    +-----------------+ |
-|                            |  BullMQ Workers   |---->|  Slack Notifier   |    |  Elasticsearch  | |
-|                            | (Concurrency = 5) |     |  (Live Webhooks)  |    |  8.x Cluster    | |
-|                            +---------+---------+     +-------------------+    +-----------------+ |
-|                                      |                                                            |
-|                                      | Fake SMTP                                                  |
-|                                      v                                                            |
-|                            +-------------------+                                                  |
-|                            |  Ethereal Email   |                                                  |
-|                            |  (Fake Mailbox)   |                                                  |
-|                            +-------------------+                                                  |
-+---------------------------------------+-----------------------------------------------------------+
-                                        |
-           +----------------------------+----------------------------+
-           |                                                         |
-           v                                                         v
-+----------------------+                                  +----------------------+
-|   PostgreSQL 16      |                                  |       Redis 7        |
-| Persistent DB State  |                                  | BullMQ Queue State & |
-| (Prisma ORM schema)  |                                  | Rate Limit Counters  |
-+----------------------+                                  +----------------------+
++---------------------------------------------------------------------------------------------------------+
+|                                    ReachInbox Mail Client Workspace                                     |
+|                                                                                                         |
+|  +------------------+  +-------------------------------------+  +------------------------------------+  |
+|  |   Mail Sidebar   |  |        Email Thread List Pane       |  |      Reading & Inspection Pane     |  |
+|  |                  |  |                                     |  |                                    |  |
+|  | [+ Compose]      |  |  Recipient       Subject & Preview  |  |  Subject: Cold Outreach Sequence   |  |
+|  |                  |  |  [Initials]      Time / Status      |  |  From: sales@reachinbox.ai         |  |
+|  | * Scheduled (3)  |  |  ---------------------------------  |  |  To: prospect@company.com          |  |
+|  | * Sent Mail (12) |  |  mitrajit@...    ReachInbox AI...   |  |  Scheduled: Wed Oct 7, 10:45 PM    |  |
+|  | * Throttled (1)  |  |  restart-test... Persistence...     |  |  --------------------------------  |  |
+|  | * Mailboxes (3)  |  |                                     |  |  [Message HTML / Text Body]        |  |
+|  |                  |  |                                     |  |                                    |  |
+|  | BullMQ Monitor   |  |                                     |  |  [View in Ethereal Fake SMTP]      |  |
+|  | Slack Alerts     |  |                                     |  |  Job ID: email-job-3c5aaa...       |  |
+|  | User Profile     |  |                                     |  |                                    |  |
+|  +------------------+  +-------------------------------------+  +------------------------------------+  |
+|                                                                 +------------------------------------+  |
+|                                                                 |      Docked Outreach Composer      |  |
+|                                                                 +------------------------------------+  |
++---------------------------------------------------------------------------------------------------------+
 ```
 
 ### 1. How Scheduling Works (Zero Cron Jobs)
