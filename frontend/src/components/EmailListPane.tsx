@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { EmailJob } from '../types';
 import {
   Clock,
@@ -6,9 +6,8 @@ import {
   AlertTriangle,
   Loader2,
   Trash2,
-  ExternalLink,
   Mail,
-  ChevronRight,
+  Filter,
 } from 'lucide-react';
 
 interface EmailListPaneProps {
@@ -32,6 +31,8 @@ export const EmailListPane: React.FC<EmailListPaneProps> = ({
   emptyDescription,
   folderType,
 }) => {
+  const [filter, setFilter] = useState<'all' | 'today'>('all');
+
   const getInitials = (emailStr: string) => {
     const clean = emailStr.split('@')[0] || '';
     return clean.slice(0, 2).toUpperCase();
@@ -63,6 +64,16 @@ export const EmailListPane: React.FC<EmailListPaneProps> = ({
   const stripHtml = (html: string) => {
     return html.replace(/<[^>]*>?/gm, '').slice(0, 80);
   };
+
+  // Filter list
+  const filteredEmails = emails.filter((item) => {
+    if (filter === 'all') return true;
+    if (filter === 'today') {
+      const targetDate = new Date(item.sentAt || item.scheduledAt);
+      return targetDate.toDateString() === new Date().toDateString();
+    }
+    return true;
+  });
 
   if (loading) {
     return (
@@ -97,105 +108,138 @@ export const EmailListPane: React.FC<EmailListPaneProps> = ({
   }
 
   return (
-    <div className="flex-1 divide-y divide-surface-border overflow-y-auto">
-      {emails.map((email) => {
-        const isSelected = selectedEmailId === email.id;
-        const isRateLimited = email.status === 'RATE_LIMITED';
-        const isProcessing = email.status === 'PROCESSING';
-        const isSent = email.status === 'SENT';
-
-        return (
-          <div
-            key={email.id}
-            onClick={() => onSelectEmail(email)}
-            className={`p-3.5 cursor-pointer transition-colors relative group select-none flex items-start space-x-3 ${
-              isSelected
-                ? 'bg-surface-elevated border-l-2 border-primary text-slate-100'
-                : 'hover:bg-surface-hover/70 text-slate-300'
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+      {/* Quick Filter Bar */}
+      <div className="h-8 px-4 border-b border-surface-border bg-surface/80 flex items-center justify-between text-[11px] shrink-0">
+        <div className="flex items-center space-x-1">
+          <button
+            onClick={() => setFilter('all')}
+            className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
+              filter === 'all'
+                ? 'bg-surface-elevated text-slate-200 border border-surface-border'
+                : 'text-slate-500 hover:text-slate-300'
             }`}
           >
-            {/* Recipient Initials Avatar */}
-            <div className="w-8 h-8 rounded-full bg-surface border border-surface-border flex items-center justify-center shrink-0 font-mono text-[11px] font-medium text-slate-400 group-hover:text-slate-200">
-              {getInitials(email.recipient)}
-            </div>
+            All ({emails.length})
+          </button>
+          <button
+            onClick={() => setFilter('today')}
+            className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
+              filter === 'today'
+                ? 'bg-surface-elevated text-slate-200 border border-surface-border'
+                : 'text-slate-500 hover:text-slate-300'
+            }`}
+          >
+            Today
+          </button>
+        </div>
 
-            {/* Email Summary */}
-            <div className="flex-1 min-w-0">
-              {/* Row 1: Recipient + Timestamp + Status */}
-              <div className="flex items-center justify-between mb-0.5">
-                <span className="font-semibold text-xs text-slate-200 truncate max-w-[200px]">
-                  {email.recipient}
-                </span>
+        <span className="text-[10px] font-mono text-slate-500">
+          Showing {filteredEmails.length}
+        </span>
+      </div>
 
-                <div className="flex items-center space-x-1.5 shrink-0 ml-2">
-                  {folderType === 'scheduled' || folderType === 'throttled' ? (
-                    <span className="text-[10px] font-mono text-slate-400 bg-surface px-1.5 py-0.5 rounded border border-surface-border flex items-center space-x-1">
-                      <Clock className="w-2.5 h-2.5" />
-                      <span>{getTimeRemaining(email.scheduledAt)}</span>
-                    </span>
-                  ) : (
-                    <span className="text-[10px] font-mono text-slate-500">
-                      {formatTimestamp(email.sentAt)}
-                    </span>
-                  )}
+      {/* Thread List */}
+      <div className="flex-1 divide-y divide-surface-border overflow-y-auto">
+        {filteredEmails.map((email) => {
+          const isSelected = selectedEmailId === email.id;
+          const isRateLimited = email.status === 'RATE_LIMITED';
+          const isProcessing = email.status === 'PROCESSING';
+          const isSent = email.status === 'SENT';
+
+          return (
+            <div
+              key={email.id}
+              onClick={() => onSelectEmail(email)}
+              className={`p-3.5 cursor-pointer transition-colors relative group select-none flex items-start space-x-3 ${
+                isSelected
+                  ? 'bg-surface-elevated border-l-2 border-primary text-slate-100 shadow-inner'
+                  : 'hover:bg-surface-hover/70 text-slate-300'
+              }`}
+            >
+              {/* Recipient Initials Avatar */}
+              <div className="w-8 h-8 rounded-full bg-surface border border-surface-border flex items-center justify-center shrink-0 font-mono text-[11px] font-medium text-slate-400 group-hover:text-slate-200">
+                {getInitials(email.recipient)}
+              </div>
+
+              {/* Email Summary */}
+              <div className="flex-1 min-w-0">
+                {/* Row 1: Recipient + Timestamp + Status */}
+                <div className="flex items-center justify-between mb-0.5">
+                  <span className="font-semibold text-xs text-slate-200 truncate max-w-[190px]">
+                    {email.recipient}
+                  </span>
+
+                  <div className="flex items-center space-x-1.5 shrink-0 ml-2">
+                    {folderType === 'scheduled' || folderType === 'throttled' ? (
+                      <span className="text-[10px] font-mono text-slate-400 bg-surface px-1.5 py-0.5 rounded border border-surface-border flex items-center space-x-1">
+                        <Clock className="w-2.5 h-2.5 text-slate-400" />
+                        <span>{getTimeRemaining(email.scheduledAt)}</span>
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-mono text-slate-500">
+                        {formatTimestamp(email.sentAt)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Row 2: Subject */}
+                <p className="text-xs font-medium text-slate-300 truncate mb-0.5">
+                  {email.subject}
+                </p>
+
+                {/* Row 3: Body Snippet Preview */}
+                <p className="text-[11px] text-slate-500 truncate">
+                  {stripHtml(email.body) || 'No message preview'}
+                </p>
+
+                {/* Row 4: Metadata chips */}
+                <div className="mt-2 flex items-center justify-between text-[10px] text-slate-500 font-mono">
+                  <span className="truncate max-w-[170px]">From: {email.senderEmail}</span>
+
+                  <div className="flex items-center space-x-1">
+                    {isRateLimited ? (
+                      <span className="inline-flex items-center space-x-0.5 px-1.5 py-0.2 rounded text-[9px] bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                        <AlertTriangle className="w-2.5 h-2.5 mr-0.5" />
+                        <span>Throttled</span>
+                      </span>
+                    ) : isProcessing ? (
+                      <span className="inline-flex items-center space-x-0.5 px-1.5 py-0.2 rounded text-[9px] bg-slate-700 text-slate-300">
+                        <Loader2 className="w-2.5 h-2.5 mr-0.5 animate-spin" />
+                        <span>Sending</span>
+                      </span>
+                    ) : isSent ? (
+                      <span className="inline-flex items-center space-x-0.5 px-1.5 py-0.2 rounded text-[9px] bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
+                        <CheckCircle2 className="w-2.5 h-2.5 mr-0.5" />
+                        <span>Sent</span>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] bg-surface border border-surface-border text-slate-400">
+                        Scheduled
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              {/* Row 2: Subject */}
-              <p className="text-xs font-medium text-slate-300 truncate mb-1">
-                {email.subject}
-              </p>
-
-              {/* Row 3: Body Snippet Preview */}
-              <p className="text-[11px] text-slate-500 truncate">
-                {stripHtml(email.body) || 'No message content'}
-              </p>
-
-              {/* Row 4: Metadata chips */}
-              <div className="mt-2 flex items-center justify-between text-[10px] text-slate-500 font-mono">
-                <span className="truncate max-w-[180px]">From: {email.senderEmail}</span>
-
-                <div className="flex items-center space-x-1">
-                  {isRateLimited ? (
-                    <span className="inline-flex items-center space-x-0.5 px-1.5 py-0.2 rounded text-[9px] bg-amber-500/10 text-amber-300 border border-amber-500/20">
-                      <AlertTriangle className="w-2.5 h-2.5 mr-0.5" />
-                      <span>Throttled</span>
-                    </span>
-                  ) : isProcessing ? (
-                    <span className="inline-flex items-center space-x-0.5 px-1.5 py-0.2 rounded text-[9px] bg-slate-700 text-slate-300">
-                      <Loader2 className="w-2.5 h-2.5 mr-0.5 animate-spin" />
-                      <span>Sending</span>
-                    </span>
-                  ) : isSent ? (
-                    <span className="inline-flex items-center space-x-0.5 px-1.5 py-0.2 rounded text-[9px] bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
-                      <CheckCircle2 className="w-2.5 h-2.5 mr-0.5" />
-                      <span>Sent</span>
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] bg-surface border border-surface-border text-slate-400">
-                      Scheduled
-                    </span>
-                  )}
-                </div>
-              </div>
+              {/* Hover Actions */}
+              {onCancelEmail && email.status !== 'SENT' && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onCancelEmail(email.id);
+                  }}
+                  className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-surface-elevated text-slate-500 hover:text-rose-400 transition-all absolute right-2 top-2"
+                  title="Cancel email"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
-
-            {/* Hover Actions */}
-            {onCancelEmail && email.status !== 'SENT' && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onCancelEmail(email.id);
-                }}
-                className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-surface-elevated text-slate-500 hover:text-rose-400 transition-all absolute right-2 top-2"
-                title="Cancel email"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 };

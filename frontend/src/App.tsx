@@ -8,6 +8,7 @@ import { MailComposer } from './components/MailComposer';
 import { SlackModal } from './components/SlackModal';
 import { SendersView } from './components/SendersView';
 import { LoginView } from './components/LoginView';
+import { ToastContainer, ToastMessage } from './components/Toast';
 import {
   Search,
   RefreshCw,
@@ -45,10 +46,26 @@ export const App: React.FC = () => {
   const [isComposeOpen, setIsComposeOpen] = useState(false);
   const [isSlackModalOpen, setIsSlackModalOpen] = useState(false);
 
+  // Toast Notifications
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+
+  const showToast = useCallback((text: string, type: 'success' | 'info' | 'error' = 'info') => {
+    const id = Math.random().toString(36).substring(2, 9);
+    setToasts((prev) => [...prev, { id, text, type }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 3500);
+  }, []);
+
+  const dismissToast = (id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  };
+
   // Sync user to localStorage
   const handleLoginSuccess = (userData: User) => {
     setUser(userData);
     localStorage.setItem('reachinbox_user', JSON.stringify(userData));
+    showToast(`Signed in as ${userData.name}`, 'success');
   };
 
   const handleLogout = () => {
@@ -150,19 +167,6 @@ export const App: React.FC = () => {
     return () => clearTimeout(timer);
   }, [searchQuery, user]);
 
-  const handleCancelEmail = async (id: string) => {
-    try {
-      await emailApi.cancel(id);
-      fetchData();
-    } catch (err) {
-      console.error('Cancel email error:', err);
-    }
-  };
-
-  if (!user) {
-    return <LoginView onLoginSuccess={handleLoginSuccess} />;
-  }
-
   // Filter emails based on folder
   const currentList =
     currentFolder === 'scheduled'
@@ -172,6 +176,72 @@ export const App: React.FC = () => {
       : currentFolder === 'sent'
       ? sentEmails
       : [];
+
+  // Global Keyboard Shortcuts (C to compose, Esc to close, J/K/Arrows to navigate, R to refresh)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      const isInputActive =
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
+          target.isContentEditable);
+
+      if (e.key === 'Escape') {
+        if (isComposeOpen) setIsComposeOpen(false);
+        if (isSlackModalOpen) setIsSlackModalOpen(false);
+        return;
+      }
+
+      if (isInputActive) return;
+
+      if (e.key === 'c' || e.key === 'C') {
+        e.preventDefault();
+        setIsComposeOpen(true);
+      } else if (e.key === 'r' || e.key === 'R') {
+        e.preventDefault();
+        fetchData();
+        showToast('Queue refreshed', 'info');
+      } else if (e.key === 'ArrowDown' || e.key === 'j') {
+        if (currentList.length > 0) {
+          e.preventDefault();
+          const idx = currentList.findIndex((item) => item.id === selectedEmail?.id);
+          if (idx === -1) {
+            setSelectedEmail(currentList[0]);
+          } else if (idx < currentList.length - 1) {
+            setSelectedEmail(currentList[idx + 1]);
+          }
+        }
+      } else if (e.key === 'ArrowUp' || e.key === 'k') {
+        if (currentList.length > 0) {
+          e.preventDefault();
+          const idx = currentList.findIndex((item) => item.id === selectedEmail?.id);
+          if (idx > 0) {
+            setSelectedEmail(currentList[idx - 1]);
+          }
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isComposeOpen, isSlackModalOpen, currentList, selectedEmail, fetchData, showToast]);
+
+  const handleCancelEmail = async (id: string) => {
+    try {
+      await emailApi.cancel(id);
+      showToast('Scheduled email cancelled and removed from queue', 'info');
+      fetchData();
+    } catch (err: any) {
+      showToast(err?.response?.data?.error || 'Failed to cancel email job', 'error');
+      console.error('Cancel email error:', err);
+    }
+  };
+
+  if (!user) {
+    return <LoginView onLoginSuccess={handleLoginSuccess} />;
+  }
 
   const getFolderMeta = () => {
     switch (currentFolder) {
@@ -303,6 +373,7 @@ export const App: React.FC = () => {
               <EmailDetailPane
                 email={selectedEmail}
                 onCancelEmail={handleCancelEmail}
+                onShowToast={showToast}
               />
             </div>
           </div>
@@ -316,6 +387,7 @@ export const App: React.FC = () => {
         onSuccess={fetchData}
         senders={senders}
         userId={user.id}
+        onShowToast={showToast}
       />
 
       {/* 4. Slack Connection & Live Alert Modal */}
@@ -326,6 +398,9 @@ export const App: React.FC = () => {
         onStatusChange={fetchData}
         userId={user.id}
       />
+
+      {/* 5. Minimalist Toast Notifications */}
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </div>
   );
 };

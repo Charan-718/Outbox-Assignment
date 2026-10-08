@@ -274,18 +274,18 @@ To demonstrate zero dropped or duplicated jobs across crashes/restarts:
 ├── frontend/
 │   ├── src/
 │   │   ├── components/
-│   │   │   ├── Header.tsx         # Top bar with Slack & BullMQ dashboard links
-│   │   │   ├── StatsCards.tsx     # Overview metrics & worker specs
-│   │   │   ├── ScheduledTable.tsx # Scheduled queue table with countdowns
-│   │   │   ├── SentTable.tsx      # Sent emails table with Ethereal previews
-│   │   │   ├── ComposeModal.tsx   # Campaign compose modal & CSV parser
-│   │   │   ├── SlackModal.tsx     # Slack webhook/OAuth & test alert modal
-│   │   │   ├── SendersView.tsx    # Senders & rate limit usage meter
-│   │   │   └── LoginView.tsx      # Google OAuth login screen
+│   │   │   ├── MailSidebar.tsx    # Mail folder navigation, live queue telemetry, Slack alerts, user profile
+│   │   │   ├── EmailListPane.tsx  # Dual-pane thread list with avatars, countdown badges, and quick filters
+│   │   │   ├── EmailDetailPane.tsx # Email reading pane with Ethereal preview links and queue telemetry
+│   │   │   ├── MailComposer.tsx   # Docked floating composer with 1-click templates and CSV parser
+│   │   │   ├── Toast.tsx          # Minimal floating feedback toast notifications
+│   │   │   ├── SlackModal.tsx     # Real Slack OAuth & Webhook configuration with live test alert
+│   │   │   ├── SendersView.tsx    # Multi-sender management with real-time Redis rate limit usage meters
+│   │   │   └── LoginView.tsx      # Google OAuth login screen with 1-click evaluator demo
 │   │   ├── services/
-│   │   │   └── api.ts             # Axios API integration
+│   │   │   └── api.ts             # Typed Axios API client for scheduler & Elasticsearch
 │   │   ├── types/
-│   │   │   └── index.ts           # Shared TypeScript interfaces
+│   │   │   └── index.ts           # Shared TypeScript interfaces for API responses and queue telemetry
 │   │   ├── App.tsx                # Main dashboard view
 │   │   ├── main.tsx               # React root with GoogleOAuthProvider
 │   │   └── index.css              # Tailwind styles & dark mode palette

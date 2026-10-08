@@ -13,17 +13,17 @@ import {
   Sliders,
   FileText,
   AlertCircle,
-  Check,
   Loader2,
-  Paperclip,
+  Sparkles,
 } from 'lucide-react';
 
 interface MailComposerProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (count?: number) => void;
   senders: Sender[];
   userId?: string;
+  onShowToast?: (text: string, type?: 'success' | 'info' | 'error') => void;
 }
 
 export const MailComposer: React.FC<MailComposerProps> = ({
@@ -32,6 +32,7 @@ export const MailComposer: React.FC<MailComposerProps> = ({
   onSuccess,
   senders,
   userId,
+  onShowToast,
 }) => {
   const [isMinimized, setIsMinimized] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
@@ -59,6 +60,30 @@ export const MailComposer: React.FC<MailComposerProps> = ({
 
   if (!isOpen) return null;
 
+  const templates = [
+    {
+      label: 'Cold Outreach',
+      subject: 'Transforming cold outreach with ReachInbox AI workflows',
+      body: '<p>Hi there,</p><p>I noticed your team is scaling outbound prospecting. ReachInbox helps teams verify leads, generate tailored email sequences, and automate scheduling with reliable queue persistence.</p><p>Would you be open to a 5-minute walkthrough this week?</p><p>Best regards,<br/>ReachInbox Team</p>',
+    },
+    {
+      label: 'Quick Follow-up',
+      subject: 'Quick follow-up on cold email sequencing',
+      body: '<p>Hi,</p><p>Circling back on my previous email. Did you have a chance to look over the workflow overview?</p><p>Happy to answer any questions about our queue throughput and provider throttling options.</p><p>Cheers!</p>',
+    },
+    {
+      label: 'Demo Invitation',
+      subject: 'Exclusive Demo: ReachInbox Production Scheduler',
+      body: '<p>Hello,</p><p>We would love to show you a live interactive demo of our full-stack email scheduler service featuring BullMQ delayed queues, Redis-backed sliding hourly rate limits, and Ethereal fake SMTP testing.</p><p>Let me know your availability!</p>',
+    },
+  ];
+
+  const applyTemplate = (tpl: typeof templates[0]) => {
+    setSubject(tpl.subject);
+    setBody(tpl.body);
+    if (onShowToast) onShowToast(`Applied "${tpl.label}" template`, 'info');
+  };
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -72,8 +97,13 @@ export const MailComposer: React.FC<MailComposerProps> = ({
       const unique = Array.from(new Set(matches.map((m) => m.toLowerCase().trim())));
       setParsedEmails(unique);
       setError('');
+      if (onShowToast) onShowToast(`Detected ${unique.length} email addresses from ${file.name}`, 'success');
     };
     reader.readAsText(file);
+  };
+
+  const removeLead = (emailToRemove: string) => {
+    setParsedEmails(parsedEmails.filter((e) => e !== emailToRemove));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -109,6 +139,9 @@ export const MailComposer: React.FC<MailComposerProps> = ({
           hourlyLimit,
           userId,
         });
+
+        if (onShowToast) onShowToast('Email scheduled successfully in BullMQ', 'success');
+        onSuccess(1);
       } else {
         if (parsedEmails.length === 0) {
           setError('Please upload a CSV or list containing at least one lead email');
@@ -126,9 +159,11 @@ export const MailComposer: React.FC<MailComposerProps> = ({
           hourlyLimit,
           userId,
         });
+
+        if (onShowToast) onShowToast(`Scheduled campaign for ${parsedEmails.length} leads in BullMQ`, 'success');
+        onSuccess(parsedEmails.length);
       }
 
-      onSuccess();
       onClose();
     } catch (err: any) {
       setError(err?.response?.data?.error || err.message || 'Failed to schedule');
@@ -166,16 +201,16 @@ export const MailComposer: React.FC<MailComposerProps> = ({
       className={`fixed z-50 transition-all duration-200 bg-surface-card border border-surface-border shadow-2xl flex flex-col ${
         isMaximized
           ? 'inset-6 rounded-xl'
-          : 'bottom-0 right-6 w-[560px] h-[580px] rounded-t-xl'
+          : 'bottom-0 right-6 w-[580px] h-[610px] rounded-t-xl'
       }`}
     >
       {/* Title Bar */}
       <div className="h-10 px-4 bg-surface flex items-center justify-between border-b border-surface-border rounded-t-xl shrink-0 select-none">
         <div className="flex items-center space-x-2">
-          <span className="text-xs font-semibold text-slate-200">New Outreach Message</span>
+          <span className="text-xs font-semibold text-slate-200">New Outreach Campaign</span>
           {mode === 'batch' && parsedEmails.length > 0 && (
             <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-surface-elevated text-slate-300 border border-surface-border">
-              {parsedEmails.length} leads
+              {parsedEmails.length} leads detected
             </span>
           )}
         </div>
@@ -282,6 +317,21 @@ export const MailComposer: React.FC<MailComposerProps> = ({
           </button>
         </div>
 
+        {/* Template Quick Pickers */}
+        <div className="px-4 py-1.5 border-b border-surface-border/60 bg-surface/40 flex items-center space-x-1.5 overflow-x-auto text-[11px]">
+          <span className="text-slate-500 text-[10px] uppercase font-semibold shrink-0">Templates:</span>
+          {templates.map((tpl) => (
+            <button
+              key={tpl.label}
+              type="button"
+              onClick={() => applyTemplate(tpl)}
+              className="px-2 py-0.5 rounded bg-surface border border-surface-border text-slate-300 hover:text-white hover:bg-surface-elevated shrink-0 transition-colors"
+            >
+              {tpl.label}
+            </button>
+          ))}
+        </div>
+
         {/* Subject Field */}
         <div className="px-4 py-2.5 border-b border-surface-border flex items-center">
           <input
@@ -304,6 +354,24 @@ export const MailComposer: React.FC<MailComposerProps> = ({
             required
           />
         </div>
+
+        {/* Lead Chips Preview Drawer (if leads uploaded) */}
+        {mode === 'batch' && parsedEmails.length > 0 && (
+          <div className="px-4 py-1.5 bg-surface-elevated/40 border-t border-surface-border flex items-center space-x-1 overflow-x-auto max-h-16 text-[10px] font-mono text-slate-400">
+            <span className="shrink-0 text-slate-500">Leads:</span>
+            {parsedEmails.slice(0, 5).map((e) => (
+              <span key={e} className="inline-flex items-center space-x-1 px-1.5 py-0.5 rounded bg-surface border border-surface-border text-slate-300 shrink-0">
+                <span>{e}</span>
+                <button type="button" onClick={() => removeLead(e)} className="text-slate-500 hover:text-rose-400">
+                  <X className="w-2.5 h-2.5" />
+                </button>
+              </span>
+            ))}
+            {parsedEmails.length > 5 && (
+              <span className="text-slate-500 shrink-0">+{parsedEmails.length - 5} more</span>
+            )}
+          </div>
+        )}
 
         {/* Schedule Settings Drawer (collapsible) */}
         {showScheduleSettings && (

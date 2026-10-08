@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { EmailJob } from '../types';
 import {
   Mail,
@@ -7,31 +7,40 @@ import {
   Clock,
   CheckCircle2,
   AlertTriangle,
-  Shield,
-  Send,
-  Calendar,
-  Layers,
+  Copy,
+  Check,
+  Code,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 
 interface EmailDetailPaneProps {
   email: EmailJob | null;
   onCancelEmail?: (id: string) => void;
+  onShowToast?: (text: string, type?: 'success' | 'info' | 'error') => void;
 }
 
 export const EmailDetailPane: React.FC<EmailDetailPaneProps> = ({
   email,
   onCancelEmail,
+  onShowToast,
 }) => {
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [showRawMetadata, setShowRawMetadata] = useState(false);
+
   if (!email) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-12 text-center select-none bg-canvas">
-        <div className="w-14 h-14 rounded-2xl bg-surface border border-surface-border flex items-center justify-center text-slate-500 mb-3.5">
+        <div className="w-14 h-14 rounded-2xl bg-surface border border-surface-border flex items-center justify-center text-slate-500 mb-3.5 shadow-sm">
           <Mail className="w-6 h-6 stroke-[1.5]" />
         </div>
         <h3 className="text-sm font-semibold text-slate-200 mb-1">Select an email to read</h3>
-        <p className="text-xs text-slate-500 max-w-xs">
-          Click any email thread on the left to inspect scheduling details, rendered content, and fake SMTP delivery.
+        <p className="text-xs text-slate-500 max-w-xs mb-3">
+          Click any email thread on the left to inspect scheduling telemetry, rendered HTML, and fake SMTP delivery.
         </p>
+        <div className="text-[11px] font-mono text-slate-600 bg-surface px-2.5 py-1 rounded border border-surface-border">
+          Tip: Press <kbd className="text-slate-400">C</kbd> to compose, <kbd className="text-slate-400">↑</kbd> <kbd className="text-slate-400">↓</kbd> to navigate
+        </div>
       </div>
     );
   }
@@ -57,6 +66,15 @@ export const EmailDetailPane: React.FC<EmailDetailPaneProps> = ({
     }
   };
 
+  const handleCopyLink = () => {
+    if (email.etherealPreviewUrl) {
+      navigator.clipboard.writeText(email.etherealPreviewUrl);
+      setCopiedLink(true);
+      if (onShowToast) onShowToast('Ethereal preview link copied to clipboard', 'success');
+      setTimeout(() => setCopiedLink(false), 2000);
+    }
+  };
+
   return (
     <div className="flex-1 flex flex-col bg-canvas overflow-y-auto">
       {/* Top Action Header */}
@@ -65,7 +83,7 @@ export const EmailDetailPane: React.FC<EmailDetailPaneProps> = ({
           {isSent ? (
             <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded text-xs font-medium bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
               <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>Delivered</span>
+              <span>Delivered via Ethereal</span>
             </span>
           ) : isRateLimited ? (
             <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded text-xs font-medium bg-amber-500/10 text-amber-300 border border-amber-500/20">
@@ -82,16 +100,27 @@ export const EmailDetailPane: React.FC<EmailDetailPaneProps> = ({
 
         <div className="flex items-center space-x-2">
           {email.etherealPreviewUrl && (
-            <a
-              href={email.etherealPreviewUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-surface-elevated hover:bg-surface-hover text-slate-200 border border-surface-border text-xs font-medium transition-colors"
-              title="Open fake email preview in Ethereal"
-            >
-              <span>View in Ethereal</span>
-              <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
-            </a>
+            <>
+              <button
+                onClick={handleCopyLink}
+                className="inline-flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg bg-surface-elevated hover:bg-surface-hover text-slate-300 border border-surface-border text-xs transition-colors"
+                title="Copy Ethereal message URL"
+              >
+                {copiedLink ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3 text-slate-400" />}
+                <span>{copiedLink ? 'Copied' : 'Copy Link'}</span>
+              </button>
+
+              <a
+                href={email.etherealPreviewUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-white text-slate-900 text-xs font-medium transition-colors shadow-xs"
+                title="Open fake email preview in Ethereal"
+              >
+                <span>View in Ethereal</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            </>
           )}
 
           {onCancelEmail && email.status !== 'SENT' && (
@@ -101,7 +130,7 @@ export const EmailDetailPane: React.FC<EmailDetailPaneProps> = ({
               title="Cancel scheduled job"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              <span>Cancel Email</span>
+              <span>Cancel Job</span>
             </button>
           )}
         </div>
@@ -150,9 +179,25 @@ export const EmailDetailPane: React.FC<EmailDetailPaneProps> = ({
           {email.bullJobId && (
             <div className="pt-2 border-t border-surface-border flex items-center justify-between text-[11px] font-mono text-slate-500">
               <span className="truncate">Job ID: {email.bullJobId}</span>
-              {email.etherealMessageId && (
-                <span className="truncate max-w-xs">Msg ID: {email.etherealMessageId}</span>
-              )}
+              <button
+                onClick={() => setShowRawMetadata(!showRawMetadata)}
+                className="text-slate-400 hover:text-slate-200 flex items-center space-x-1"
+              >
+                <Code className="w-3 h-3" />
+                <span>{showRawMetadata ? 'Hide Details' : 'Queue Details'}</span>
+                {showRawMetadata ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+              </button>
+            </div>
+          )}
+
+          {/* Collapsible Raw Metadata */}
+          {showRawMetadata && (
+            <div className="mt-2 pt-2 border-t border-surface-border/60 bg-surface-elevated/40 p-2.5 rounded font-mono text-[10px] text-slate-400 space-y-1">
+              <div>BullMQ Queue: email-queue</div>
+              <div>BullMQ Job ID: {email.bullJobId}</div>
+              {email.etherealMessageId && <div>Message ID: {email.etherealMessageId}</div>}
+              <div>Created At: {email.createdAt}</div>
+              <div>Database ID: {email.id}</div>
             </div>
           )}
         </div>
@@ -166,7 +211,7 @@ export const EmailDetailPane: React.FC<EmailDetailPaneProps> = ({
               </div>
               <div>
                 <p className="font-medium text-slate-200">Delivered via Ethereal Fake SMTP</p>
-                <p className="text-[11px] text-slate-500">View real rendered HTML copy in the cloud sandbox</p>
+                <p className="text-[11px] text-slate-500">Real rendered HTML message captured in Ethereal mailbox</p>
               </div>
             </div>
 
@@ -183,7 +228,7 @@ export const EmailDetailPane: React.FC<EmailDetailPaneProps> = ({
 
         {/* Email Body Paper Container */}
         <div className="rounded-xl bg-surface border border-surface-border p-6 shadow-sm">
-          <div className="text-xs uppercase tracking-wider font-semibold text-slate-500 mb-4 pb-2 border-b border-surface-border">
+          <div className="text-[11px] uppercase tracking-wider font-semibold text-slate-500 mb-4 pb-2 border-b border-surface-border">
             Message Body
           </div>
 
