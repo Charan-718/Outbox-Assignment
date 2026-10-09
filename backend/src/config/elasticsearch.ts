@@ -11,6 +11,11 @@ export const esClient = new Client({
 export const ES_INDEX_NAME = config.elasticsearch.index;
 
 export async function initElasticsearch() {
+  if (config.elasticsearch.node === 'http://localhost:9200' && config.nodeEnv !== 'development') {
+    console.warn('[Elasticsearch] No production node configured. Full-text search fallback enabled.');
+    return false;
+  }
+
   try {
     const ping = await esClient.ping();
     if (!ping) {
