@@ -165,7 +165,7 @@ export const MailSidebar: React.FC<MailSidebarProps> = ({
           <div className="space-y-0.5 text-xs">
             {/* Live BullMQ Dashboard Link */}
             <a
-              href="http://localhost:5001/admin/queues"
+              href={`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/admin/queues`}
               target="_blank"
               rel="noreferrer"
               className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-surface-hover transition-colors"
